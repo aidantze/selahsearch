@@ -42,6 +42,24 @@ def getNumVerses(bible, book, chapter):
     return len([k for k in bible.keys() if k.startswith(f"{book} {chapter}:")])
 
 
+def printPassage(book, startChapter, startVerse, endChapter, endVerse):
+    """
+    Prints the passage given as args in one of the following forms:
+    Genesis 1:1
+    Genesis 1:1-31
+    Genesis 1:1-2:3
+    1 Corinthians 15:51
+    """
+    if (startChapter == endChapter and startVerse == endVerse):
+        return f"{book} {startChapter}:{startVerse}"
+
+    elif (startChapter == endChapter):
+        return f"{book} {startChapter}:{startVerse}-{endVerse}"
+
+    else:
+        return f"{book} {startChapter}:{startVerse}-{endChapter}:{endVerse}"
+
+
 def extractPassage(book, startChapter, startVerse, endChapter, endVerse):
     """
     Reference supplied as separate arguments listed below. Assume same book.
@@ -117,7 +135,7 @@ def extractPassage(book, startChapter, startVerse, endChapter, endVerse):
         # get verses in startChapter from startVerse to end of chapter
         for i in range(getNumVerses(bible, book, startChapter) - startVerse):
             reference = f"{book} {startChapter}:{startVerse + i}"
-            print(reference)
+            # print(reference)
             content += bible[reference] + " "
 
         # get all verses in any chapters between the start and end chapter
@@ -125,13 +143,13 @@ def extractPassage(book, startChapter, startVerse, endChapter, endVerse):
             newChapter = startChapter + 1 + i
             for j in range(getNumVerses(bible, book, newChapter)):
                 reference = f"{book} {newChapter}:{j + 1}"
-                print(reference)
+                # print(reference)
                 content += bible[reference] + " "
 
         # get verses in endChapter from start of chapter to endVerse
         for i in range(endVerse):
             reference = f"{book} {endChapter}:{i + 1}"
-            print(reference)
+            # print(reference)
             content += bible[reference] + " "
 
         return content
@@ -164,7 +182,7 @@ def main():
     endChapter = int(input("Enter chapter to end at: "))
     endVerse = int(input("Enter verse to end at: "))
     
-    print("\nRetrieving passage...\n")
+    print(f"\nRetrieving the contents of {printPassage(book, startChapter, startVerse, endChapter, endVerse)}\n")
     print(extractPassage(book, startChapter, startVerse, endChapter, endVerse))
     print()
 
