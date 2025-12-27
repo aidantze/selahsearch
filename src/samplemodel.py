@@ -102,7 +102,7 @@ def main():
     endChapter = int(input("Enter chapter to end at: "))
     endVerse = int(input("Enter verse to end at: "))
     
-    print(f"\nFinding songs that best relate theologically with {printPassage(book, startChapter, startVerse, endChapter, endVerse)}\n")
+    print(f"\nFinding songs that best relate with {printPassage(book, startChapter, startVerse, endChapter, endVerse)}\n")
     results = matchScores(book, startChapter, startVerse, endChapter, endVerse)
     sorted_results = dict(sorted(results.items(), key=lambda item: float(item[1]['score']), reverse=True))
     
