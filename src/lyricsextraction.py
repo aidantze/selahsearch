@@ -113,7 +113,7 @@ def printSongs(songs: Dict) -> None:
     print("Songs analysed:")
 
     for k in songs.keys():
-        print(k.removesuffix(".txt").replace("_", " ").title())
+        print(getSongname(k))
     print()
     print()
 
@@ -129,6 +129,7 @@ def printWords(path: str, words: Dict) -> None:
     print()
     print()
 
+
 def printFreq(checkWords: List, checkWordFreq: Dict) -> None:
     """
     Print word frequency to stdout
@@ -141,7 +142,7 @@ def printFreq(checkWords: List, checkWordFreq: Dict) -> None:
 
     # 2. Print comma separated list of words (not frequency)
     for song, values in checkWordFreq.items():
-        outputStr = song.removesuffix(".txt").replace("_", " ").title() + ": "
+        outputStr = getSongname(song) + ": "
         for k in values.keys():
             outputStr += str(k) + ", "
         outputStr = outputStr.removesuffix(",")
@@ -185,7 +186,7 @@ def printScore(wordScore: Dict) -> None:
     print("Top songs by score:")
 
     for k, v in wordScore.items():
-        title = k.removesuffix(".txt").replace("_", " ").title()
+        title = getSongname(k)
         print(title + ": " + str(v))
     print()
     print()
@@ -210,20 +211,24 @@ def printGospelCentric(checkWordFreq: Dict) -> None:
     print("Gospel-centric songs:")
 
     for song, values in checkWordFreq.items():
-        outputStr = song.removesuffix(".txt").replace("_", " ").title()
         if (isGospelCentric(values)):
-            print(outputStr)
+            print(getSongname(song))
     print()
     print()
 
 
-def extractLyrics(songname: str) -> str:
+def extractLyricsByName(songname: str) -> str:
     """
-    Get a song's lyrics. That's it
+    Get a song's lyrics by name. That's it.
     """
-    filename = songname.strip().lower().replace(' ', '_') + '.txt'
+    return extractLyricsByFile(getFilename(songname))
+
+
+def extractLyricsByFile(filename: str) -> str:
+    """
+    Get a song's lyrics by filename. That's it
+    """
     path = os.path.join(directory_path, filename)
-    print(path)
     content = ""
 
     try:
@@ -239,6 +244,20 @@ def extractLyrics(songname: str) -> str:
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return ""
+
+
+def getSongname(filename: str) -> str:
+    """
+    Get the name of a song in title case format from its filename
+    """
+    return filename.removesuffix(".txt").replace("_", " ").title()
+
+
+def getFilename(songname: str) -> str:
+    """
+    Get the name of a song in title case format from its filename
+    """
+    return songname.strip().lower().replace(' ', '_') + '.txt'
 
 
 def main() -> None:
