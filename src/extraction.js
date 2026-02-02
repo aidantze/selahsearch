@@ -1,8 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const BIBLE_PATH = 'bible.txt';
-const LYRICS_DIR = 'lyrics/';
+const BIBLE_PATH = 'src/bible.txt';
+const LYRICS_DIR = 'src/lyrics/';
 
 function formatBookName(bookInput) {
     let book = bookInput.trim().toLowerCase();
@@ -107,6 +107,8 @@ function extractPassage(bookInput, startCh, startVs, endCh, endVs) {
     if (!bible.has(startRef) || !bible.has(endRef)) throw new Error("The chapter and/or verses do not exist in the bible");
 
     // Extraction
+    console.log(`Extracting contents of ${ book } ${ sCh }:${ sVs }-${ eCh }:${ eVs }...`);
+
     let content = "";
     for (let c = sCh; c <= eCh; c++) {
         const start = (c === sCh) ? sVs : 1;

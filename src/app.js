@@ -42,7 +42,7 @@ Routes that will interact directly with the database, some closely relate with e
 require('dotenv').config();
 const express = require('express');
 const { spawn } = require('child_process');
-const { extractPassage, getAllLyrics, formatBookName } = require('./extraction');
+const { extractPassage, getAllLyrics } = require('./extraction');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
 const app = express();
@@ -135,7 +135,7 @@ app.get('/songs/matches', async (req, res) => {
         const songs = getAllLyrics().map(s => ({ name: s.songName, lyrics: s.lyrics }));
 
         // NLP Model Process
-        const pyProcess = spawn('python3', ['model.py']);
+        const pyProcess = spawn('python3', ['src/model.py']);
         let pythonData = "";
         let pythonError = "";
 
