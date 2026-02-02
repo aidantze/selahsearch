@@ -138,6 +138,7 @@ app.get('/songs/matches', async (req, res) => {
         const pyProcess = spawn('python3', ['src/model.py']);
         let pythonData = "";
         let pythonError = "";
+        console.log("Running the transformer model...");
 
         pyProcess.stdin.write(JSON.stringify({ passage: passage.text, songs: songs }));
         pyProcess.stdin.end();
@@ -150,6 +151,7 @@ app.get('/songs/matches', async (req, res) => {
                 return res.status(500).json({ error: "NLP Worker failed", details: pythonError });
             }
             try {
+                console.log("Sending response packet...\n");
                 const results = JSON.parse(pythonData);
                 // res.json({
                 //     search_query: {
