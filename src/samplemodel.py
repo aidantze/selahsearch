@@ -2,6 +2,8 @@
 sample NLP program to test comparison of similarity scores
 uses bible reference model to perform NLP comparison
 """
+import sys
+import json
 
 import numpy as np
 from sentence_transformers import SentenceTransformer
@@ -17,7 +19,7 @@ model = SentenceTransformer(MODEL_NAME)
 themes = ["Trust and Guidance", "Restoration and Peace", "Wrath and Judgment", "Jesus", 
           "Resurrection", "Love", "Faith", "Hope", "Power", "Joy", "Victory", "Creation", 
           "Suffering", "Grace", "Kingdom", "Sin", "Spirit", "Trinity", "Eternity", 
-          "Humble", "Wisdom", "Mercy", "Heaven", "Throne"]
+          "Humble", "Wisdom", "Mercy", "Heaven", "Throne", "Covenant"]
 # bible_passage = extractPassage("Romans", 8, 31, 8, 39)
 # song_lyric = extractLyricsByName("Your Word")
 
@@ -51,8 +53,9 @@ def get_thematic_signature(doc_vec, theme_vecs):
     return relu_scores / norm if norm > 0 else relu_scores
 
 
-def matchScores(book, startChapter, startVerse, endChapter, endVerse):
+def matchPassage(book, startChapter, startVerse, endChapter, endVerse):
     """
+    Takes a passage and matches it directly then thematically to each song and returns the scores.
     Runs the NLP model to calculate similarity scores for each theme and return the results
     """
     bible_passage = extractPassage(book, startChapter, startVerse, endChapter, endVerse)
@@ -72,14 +75,14 @@ def matchScores(book, startChapter, startVerse, endChapter, endVerse):
             relevant_themes = []
 
         else:            
-            # Thematic Analysis            
+            # Thematic Analysis
             l_signature = get_thematic_signature(lyric_vec, THEME_VECS)
             thematic_similarity = np.dot(p_signature, l_signature)
 
             # Finding relevant themes
             contributions = p_signature * l_signature
             relevant_themes = [
-                themes[i] for i in range(len(themes)) 
+                themes[i] for i in range(len(themes))
                 if contributions[i] > THEME_RELEVANCE_THRESHOLD
             ]
             
@@ -94,7 +97,7 @@ def matchScores(book, startChapter, startVerse, endChapter, endVerse):
     return lyric_scores
 
 
-def main():
+def samplemain():
     print("SelahSearch NLP Model: Get songs for your bible passage here!")
     book = input("Enter book: ")
     startChapter = int(input("Enter chapter to start from: "))
@@ -103,7 +106,7 @@ def main():
     endVerse = int(input("Enter verse to end at: "))
     
     print(f"\nFinding songs that best relate with {printPassage(book, startChapter, startVerse, endChapter, endVerse)}\n")
-    results = matchScores(book, startChapter, startVerse, endChapter, endVerse)
+    results = matchPassage(book, startChapter, startVerse, endChapter, endVerse)
     sorted_results = dict(sorted(results.items(), key=lambda item: float(item[1]['score']), reverse=True))
     
     print("\n--- RELATED SONGS (sorted by relevance) ---\n")
@@ -115,7 +118,37 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # samplemain()
+
+    function_name = sys.argv[1]
+    
+    if function_name == "passageInfo":
+        # Pass arguments as a list
+        name = sys.argv[2]
+        result = greet(name)
+        print(result)
+
+    elif function_name == "songInfo":
+        # Pass arguments as a list
+        name = sys.argv[2]
+        result = greet(name)
+        print(result)
+
+    elif function_name == "matchPassage":
+        # Ensure arguments are converted to the correct type (e.g., int)
+        book = str(sys.argv[2])
+        startChapter = int(sys.argv[3])
+        startVerse = int(sys.argv[4])
+        endChapter = int(sys.argv[5])
+        endVerse = int(sys.argv[6])
+
+        results = matchPassage(book, startChapter, startVerse, endChapter, endVerse)
+        sorted_results = dict(sorted(results.items(), key=lambda item: float(item[1]['score']), reverse=True))
+        # For structured data, you can print JSON
+        print(json.dumps({"result": sorted_results}))
+    
+    # Crucial for ensuring all output is sent immediately
+    sys.stdout.flush()
 
 
 # import numpy as np

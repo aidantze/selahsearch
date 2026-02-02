@@ -1,0 +1,27 @@
+{
+  "name": "selahsearch",
+  "version": "1.0.0",
+  "description": "*SelahSearch* is a Christian API designed to help Christian churches choose theologically-appropriate worship songs for their church services that best related to the sermon passage. This API uses NLP, comparing similarity scores to determine matching themes in both worship song lyrics and passages directly from the bible.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aidantze/selahsearch.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aidantze/selahsearch/issues"
+  },
+  "homepage": "https://github.com/aidantze/selahsearch#readme",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "mongodb": "^7.0.0"
+  }
+}

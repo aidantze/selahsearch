@@ -219,14 +219,14 @@ def printGospelCentric(checkWordFreq: Dict) -> None:
 
 def extractLyricsByName(songname: str) -> str:
     """
-    Get a song's lyrics. That's it
+    Get a song's lyrics by name. That's it.
     """
     return extractLyricsByFile(getFilename(songname))
 
 
 def extractLyricsByFile(filename: str) -> str:
     """
-    Get a song's lyrics. That's it
+    Get a song's lyrics by filename. That's it
     """
     path = os.path.join(directory_path, filename)
     content = ""

@@ -2,20 +2,47 @@
 App.py
 ---
 SelahSearch
-RESTful service API which uses NLP to match worship lyrics with bible references
+Web service API which uses NLP to match worship lyrics with bible references
+
+
+MVP Features
+---------------------------------------------------------
+public API routes:
+Public routes for anyone to use freely
+---------------------------------------------------------
+/passage/:id GET [str song]: get the details of a bible passage, including its content and relevant themes
+/song/:id GET [str song]: get the details of a worship song, including its lyrics and relevant themes
+
+/passage/:id/matches GET [str passage]: get the songs relating to a bible passage
+
+
+---------------------------------------------------------
+Database API routes:
+Routes that will interact directly with the database, some closely relate with equivalent public API route
+---------------------------------------------------------
+/passages POST: add a bible passage. Returns error if already exists
+/themes POST: add a theme. Returns error if already exists
+/songs POST: add a worship song. Returns error if already exists
+
+/passage/:id PUT: update the contents of a bible passage
+/song/:id PUT: update the lyrics of a worship song
+
+/passage/:id DELETE: delete a bible passage
+/theme/:id DELETE: delete a theme
+/song/:id DELETE: delete a worship song
+
+/passage/:id GET: get the contents of a bible passage
+/song/:id GET: get the lyrics of a worship song
+/songs GET: get a list of all songs in the system
+/themes GET: get a list of all themes in the system
+
 
 """
-
-# You can import more modules from the standard library here if you need them
-# (which you will, e.g. sqlite3).
 import os
 from pathlib import Path
 
-# You can import more third-party packages here if you need them, provided
-# that they've been used in the weekly labs, or specified in this assignment,
-# and their versions match.
-from dotenv import load_dotenv          # Needed to load the environment variables from the .env file
-import google.generativeai as genai     # Needed to access the Generative AI API
+# from dotenv import load_dotenv          # Needed to load the environment variables from the .env file
+# import google.generativeai as genai     # Needed to access the Generative AI API
 
 # Other modules
 import requests
@@ -28,25 +55,47 @@ import pandas as pd
 import sqlite3
 from datetime import datetime
 
+from pymongo.mongo_client import MongoClient
+from pymongo.server_api import ServerApi
+from urllib.parse import quote_plus
+
+
 # Constants and OS
-curr_dir = os.path.dirname(os.path.abspath(__file__))
-studentid = Path(__file__).stem         # Will capture your zID from the filename.
-db_file = f"{studentid}.db"           # Use this variable when referencing the SQLite database file.
-txt_file = f"{studentid}.txt"          # Use this variable when referencing the txt file for Q7.
-table_name = "stops"
+# curr_dir = os.path.dirname(os.path.abspath(__file__))
+# studentid = Path(__file__).stem         # Will capture your zID from the filename.
+# db_file = f"{studentid}.db"           # Use this variable when referencing the SQLite database file.
+# txt_file = f"{studentid}.txt"          # Use this variable when referencing the txt file for Q7.
+# table_name = "stops"
+username = quote_plus(os.environ['MONGODB_USERNAME']) # required to % encode this
+password = quote_plus(os.environ['MONGODB_PASSWORD']) # required to % encode this
+cluster = 'devcluster'
 
 HOSTNAME = "127.0.0.1"
 PORT = 5000
 
+# database connection
+# TODO: relocate db string to env variable
+uri = f"mongodb+srv://{username}:{password}@{cluster}.vzphze8.mongodb.net/?appName={cluster}"
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
+
+
+
 
 # Load the environment variables from the .env file
-load_dotenv()
+# load_dotenv()
 
-# Configure the API key
-genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
+# # Configure the API key
+# genai.configure(api_key=os.environ["GOOGLE_API_KEY"])
 
-# Create a Gemini Pro model
-gemini = genai.GenerativeModel('gemini-pro')
+# # Create a Gemini Pro model
+# gemini = genai.GenerativeModel('gemini-pro')
 
 
 # App
@@ -114,6 +163,9 @@ putParser.add_argument('last_updated', required=False, type=str)
 putParser.add_argument('latitude', required=False, type=float)
 putParser.add_argument('longitude', required=False, type=float)
 putParser.add_argument('next_departure', required=False, type=str)
+
+
+
 
 
 # Routes and HTTP methods
