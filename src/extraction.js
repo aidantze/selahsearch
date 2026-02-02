@@ -54,6 +54,7 @@ function getMaxVerses(bible, book, chapter) {
 
 function extractPassage(bookInput, startCh, startVs, endCh, endVs) {
     const { bible, books } = retrieveBible();
+    if (books.length === 0) throw new Error(`unable to retrieve bible contents: bible does not exist`);
     const book = formatBookName(bookInput);
 
     if (!books.includes(book)) throw new Error(`book does not exist in the bible`);
