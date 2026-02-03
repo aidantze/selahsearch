@@ -12,7 +12,7 @@ THEMES = ["Trust and Guidance", "Restoration and Peace", "Wrath and Judgment", "
           "Suffering", "Grace", "Kingdom", "Sin", "Spirit", "Trinity", "Eternity", 
           "Humble", "Wisdom", "Mercy", "Heaven", "Throne", "Covenant"]
 
-THEME_VECS = model.encode(THEMES)
+THEME_VECS = model.encode(THEMES, convert_to_numpy=True)
 THEME_VECS = THEME_VECS / np.linalg.norm(THEME_VECS, axis=1, keepdims=True)
 
 def chunk_text(text):
