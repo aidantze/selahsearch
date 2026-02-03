@@ -110,11 +110,13 @@ async function connectToMongo() {
 app.use(express.json());
 
 app.get('/healthcheck', (_, res) => {
+    console.log("Received request for /healthcheck...");
     return res.status(200).json({ "status": "alive" })
 });
 
 // Route: GET /songs/matches?book=John&startChapter=3&startVerse=16...
 app.get('/songs/matches', async (req, res) => {
+    console.log("Received request for /songs/matches...");
     try {
         // Extract raw query params
         const { book, startChapter, startVerse, endChapter, endVerse } = req.query;
