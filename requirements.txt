@@ -1,2 +1,0 @@
-numpy>=2.2.6
-sentence_transformers>=5.1.1

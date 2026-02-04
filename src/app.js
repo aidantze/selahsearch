@@ -41,12 +41,14 @@ Routes that will interact directly with the database, some closely relate with e
 */
 require('dotenv').config();
 const express = require('express');
-const { spawn } = require('child_process');
+const axios = require('axios');
+const { Client } = require("@gradio/client");
 const { extractPassage, getAllLyrics } = require('./extraction');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
+const { spawn } = require('child_process');
+
 const app = express();
-const port = 3000;
 
 const cors = require("cors");
 const corsOptions = {
@@ -110,12 +112,121 @@ async function connectToMongo() {
 app.use(express.json());
 
 app.get('/healthcheck', (_, res) => {
-    console.log("Received request for /healthcheck...");
     return res.status(200).json({ "status": "alive" })
 });
 
 // Route: GET /songs/matches?book=John&startChapter=3&startVerse=16...
 app.get('/songs/matches', async (req, res) => {
+    console.log("Received request for /songs/matches...");
+    try {
+        // Extract raw query params
+        const { book, startChapter, startVerse, endChapter, endVerse } = req.query;
+
+        if (!book) {
+            return res.status(400).json({ error: "Book parameter is required." });
+        }
+
+        // Pass raw values to extraction logic
+        const passage = extractPassage(
+            book,
+            startChapter, // String: e.g. "1" or undefined
+            startVerse,   // String: e.g. "1", "start", or undefined
+            endChapter,   // String: e.g. "1" or undefined
+            endVerse      // String: e.g. "2", "end" or undefined
+        );
+
+        const songs = getAllLyrics().map(s => ({ name: s.songName, lyrics: s.lyrics }));
+
+        // Call to SelahSearch NLP Agent in Hugging Face Space
+        const HF_TOKEN = process.env.HF_TOKEN;
+        const HF_SPACE_URL = process.env.HF_SPACE_URL; // e.g., https://user-space.hf.space
+        // const HF_URL = process.env.HF_SPACE_URL + '/analyse';
+
+        const client = await Client.connect(HF_SPACE_URL, {
+            token: HF_TOKEN // Required for private Spaces
+        });
+
+        const response = await client.predict(`/predict`, {
+            // const response = await axiosx.post(`${ HF_SPACE_URL }/run/predict`, {
+            passage_text: passage.text,
+            songs_json: JSON.stringify(songs)
+        }, {
+            headers: {
+                'Authorization': `Bearer ${ HF_TOKEN }`
+            },
+            timeout: 60000
+        });
+
+        // Gradio returns results inside an 'data' array
+        const results = response.data[0];
+        if (results && results.error) {
+            console.error("NLP Agent Logic Error:", results.error);
+            return res.status(422).json({
+                error: "The NLP agent processed the request but encountered a logic error.",
+                details: results.error
+            });
+        }
+
+        res.json({
+            search_query: {
+                book: passage.resolved.book,
+                startChapter: passage.resolved.startChapter,
+                startVerse: passage.resolved.startVerse,
+                endChapter: passage.resolved.endChapter,
+                endVerse: passage.resolved.endVerse,
+                passageSnippet: passage.text.substring(0, 100) + (passage.text.length > 100 ? "..." : "")
+            },
+            total_matches: results.length,
+            matches: results
+        });
+        // const nlpResponse = await axios.post(HF_URL, {
+        //     passage: passage.text,
+        //     songs: songs
+        // }, {
+        //     headers: {
+        //         'Authorization': `Bearer ${ HF_TOKEN }`,
+        //         'Content-Type': 'application/json'
+        //     },
+        //     timeout: 30000 // 30-second timeout for large song lists
+        // });
+
+        // // 4. Return the structured results
+        // const results = nlpResponse.data;
+        // res.json({
+        //     search_query: {
+        //         book: passage.resolved.book,
+        //         startChapter: passage.resolved.startChapter,
+        //         startVerse: passage.resolved.startVerse,
+        //         endChapter: passage.resolved.endChapter,
+        //         endVerse: passage.resolved.endVerse,
+        //         passageSnippet: passage.text.substring(0, 100) + (passage.text.length > 100 ? "..." : "")
+        //     },
+        //     total_matches: results.length,
+        //     matches: results
+        // });
+
+    } catch (error) {
+        console.error("Gateway Error:", error.response?.data || error.message);
+
+        if (error.response?.status === 503 || error.code === 'ECONNABORTED') {
+            return res.status(503).json({
+                error: "NLP Agent is currently waking up or overwhelmed. Please retry in a moment."
+            });
+        }
+        // // Handle "Cold Start" on Hugging Face (if space is sleeping)
+        // if (error.code === 'ECONNABORTED' || error.response?.status === 503) {
+        //     return res.status(503).json({
+        //         error: "NLP Worker is waking up. Please retry in 30 seconds."
+        //     });
+        // }
+
+        const msg = error.message;
+        let statusCode = (msg.includes("does not exist") || msg.includes("out of bounds")) ? 404 : 400;
+        res.status(statusCode).json({ error: msg });
+    }
+});
+
+app.get('/songs/matches/v1', async (req, res) => {
     console.log("Received request for /songs/matches...");
     try {
         // Extract raw query params
@@ -155,15 +266,6 @@ app.get('/songs/matches', async (req, res) => {
             try {
                 console.log("Sending response packet...\n");
                 const results = JSON.parse(pythonData);
-                // res.json({
-                //     search_query: {
-                //         input: req.query,           // What the user sent
-                //         resolved: passage.resolved, // What the system actually searched
-                //         passageSnippet: passage.text.substring(0, 50) + (passage.text.length > 50 ? "..." : "")
-                //     },
-                //     total_matches: results.length,
-                //     matches: results
-                // })
 
                 res.json({
                     search_query: {
@@ -189,4 +291,5 @@ app.get('/songs/matches', async (req, res) => {
     }
 });
 
-app.listen(port, () => console.log(`\nSelahSearch API listening on port ${ port }...\n`));
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`\nSelahSearch API listening on port ${ PORT }...\n`));
