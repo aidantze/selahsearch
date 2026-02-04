@@ -135,6 +135,7 @@ app.get('/songs/matches', async (req, res) => {
             endVerse      // String: e.g. "2", "end" or undefined
         );
 
+        console.log("Extracting lyrics of all songs...");
         const songs = getAllLyrics().map(s => ({ name: s.songName, lyrics: s.lyrics }));
 
         // Call to SelahSearch NLP Agent in Hugging Face Space
@@ -142,10 +143,12 @@ app.get('/songs/matches', async (req, res) => {
         const HF_SPACE_URL = process.env.HF_SPACE_URL; // e.g., https://user-space.hf.space
         // const HF_URL = process.env.HF_SPACE_URL + '/analyse';
 
+        console.log("Connecting to the NLP worker...");
         const client = await Client.connect(HF_SPACE_URL, {
             token: HF_TOKEN // Required for private Spaces
         });
 
+        console.log("Connection successful. Calling the model...");
         const response = await client.predict(`/predict`, {
             // const response = await axiosx.post(`${ HF_SPACE_URL }/run/predict`, {
             passage_text: passage.text,
@@ -167,6 +170,7 @@ app.get('/songs/matches', async (req, res) => {
             });
         }
 
+        console.log("Returning response packet...");
         res.json({
             search_query: {
                 book: passage.resolved.book,
