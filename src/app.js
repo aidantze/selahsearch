@@ -72,22 +72,6 @@ const client = new MongoClient(uri, {
         deprecationErrors: true,
     }
 });
-// async function run() {
-//     try {
-//         await client.connect();
-//         // const database = client.db("<dbName>");
-//         // const ratings = database.collection("<collName>");
-//         // const cursor = ratings.find();
-//         // await cursor.forEach(doc => console.dir(doc));
-//         // Send a ping to confirm a successful connection
-//         await client.db("admin").command({ ping: 1 });
-//         console.log("Pinged your deployment. You successfully connected to MongoDB!");
-//     } finally {
-//         // Ensures that the client will close when you finish/error
-//         await client.close();
-//     }
-// }
-// run().catch(console.dir);
 
 async function connectToMongo() {
     try {
@@ -135,26 +119,27 @@ app.get('/songs/matches', async (req, res) => {
             endVerse      // String: e.g. "2", "end" or undefined
         );
 
+        console.log("Extracting lyrics of all songs...");
         const songs = getAllLyrics().map(s => ({ name: s.songName, lyrics: s.lyrics }));
 
         // Call to SelahSearch NLP Agent in Hugging Face Space
         const HF_TOKEN = process.env.HF_TOKEN;
-        const HF_SPACE_URL = process.env.HF_SPACE_URL; // e.g., https://user-space.hf.space
-        // const HF_URL = process.env.HF_SPACE_URL + '/analyse';
+        const HF_SPACE_URL = process.env.HF_SPACE_URL;
 
+        console.log("Connecting to the NLP worker...");
         const client = await Client.connect(HF_SPACE_URL, {
             token: HF_TOKEN // Required for private Spaces
         });
 
+        console.log("Connection successful. Calling the model...");
         const response = await client.predict(`/predict`, {
-            // const response = await axiosx.post(`${ HF_SPACE_URL }/run/predict`, {
             passage_text: passage.text,
             songs_json: JSON.stringify(songs)
         }, {
             headers: {
                 'Authorization': `Bearer ${ HF_TOKEN }`
             },
-            timeout: 60000
+            timeout: 60000  // 60s timeout
         });
 
         // Gradio returns results inside an 'data' array
@@ -167,6 +152,7 @@ app.get('/songs/matches', async (req, res) => {
             });
         }
 
+        console.log("Returning response packet as json...\n");
         res.json({
             search_query: {
                 book: passage.resolved.book,
@@ -179,46 +165,16 @@ app.get('/songs/matches', async (req, res) => {
             total_matches: results.length,
             matches: results
         });
-        // const nlpResponse = await axios.post(HF_URL, {
-        //     passage: passage.text,
-        //     songs: songs
-        // }, {
-        //     headers: {
-        //         'Authorization': `Bearer ${ HF_TOKEN }`,
-        //         'Content-Type': 'application/json'
-        //     },
-        //     timeout: 30000 // 30-second timeout for large song lists
-        // });
-
-        // // 4. Return the structured results
-        // const results = nlpResponse.data;
-        // res.json({
-        //     search_query: {
-        //         book: passage.resolved.book,
-        //         startChapter: passage.resolved.startChapter,
-        //         startVerse: passage.resolved.startVerse,
-        //         endChapter: passage.resolved.endChapter,
-        //         endVerse: passage.resolved.endVerse,
-        //         passageSnippet: passage.text.substring(0, 100) + (passage.text.length > 100 ? "..." : "")
-        //     },
-        //     total_matches: results.length,
-        //     matches: results
-        // });
 
     } catch (error) {
         console.error("Gateway Error:", error.response?.data || error.message);
 
+        // Handle "Cold Start" on Hugging Face (if space is sleeping)
         if (error.response?.status === 503 || error.code === 'ECONNABORTED') {
             return res.status(503).json({
                 error: "NLP Agent is currently waking up or overwhelmed. Please retry in a moment."
             });
         }
-        // // Handle "Cold Start" on Hugging Face (if space is sleeping)
-        // if (error.code === 'ECONNABORTED' || error.response?.status === 503) {
-        //     return res.status(503).json({
-        //         error: "NLP Worker is waking up. Please retry in 30 seconds."
-        //     });
-        // }
 
         const msg = error.message;
         let statusCode = (msg.includes("does not exist") || msg.includes("out of bounds")) ? 404 : 400;
@@ -226,70 +182,70 @@ app.get('/songs/matches', async (req, res) => {
     }
 });
 
-app.get('/songs/matches/v1', async (req, res) => {
-    console.log("Received request for /songs/matches...");
-    try {
-        // Extract raw query params
-        const { book, startChapter, startVerse, endChapter, endVerse } = req.query;
+// app.get('/songs/matches/v1', async (req, res) => {
+//     console.log("Received request for /songs/matches...");
+//     try {
+//         // Extract raw query params
+//         const { book, startChapter, startVerse, endChapter, endVerse } = req.query;
 
-        if (!book) {
-            return res.status(400).json({ error: "Book parameter is required." });
-        }
+//         if (!book) {
+//             return res.status(400).json({ error: "Book parameter is required." });
+//         }
 
-        // Pass raw values to extraction logic
-        const passage = extractPassage(
-            book,
-            startChapter, // String: e.g. "1" or undefined
-            startVerse,   // String: e.g. "1", "start", or undefined
-            endChapter,   // String: e.g. "1" or undefined
-            endVerse      // String: e.g. "2", "end" or undefined
-        );
+//         // Pass raw values to extraction logic
+//         const passage = extractPassage(
+//             book,
+//             startChapter, // String: e.g. "1" or undefined
+//             startVerse,   // String: e.g. "1", "start", or undefined
+//             endChapter,   // String: e.g. "1" or undefined
+//             endVerse      // String: e.g. "2", "end" or undefined
+//         );
 
-        const songs = getAllLyrics().map(s => ({ name: s.songName, lyrics: s.lyrics }));
+//         const songs = getAllLyrics().map(s => ({ name: s.songName, lyrics: s.lyrics }));
 
-        // NLP Model Process
-        const pyProcess = spawn('python3', ['src/model.py']);
-        let pythonData = "";
-        let pythonError = "";
-        console.log("Running the transformer model...");
+//         // NLP Model Process
+//         const pyProcess = spawn('python3', ['src/model.py']);
+//         let pythonData = "";
+//         let pythonError = "";
+//         console.log("Running the transformer model...");
 
-        pyProcess.stdin.write(JSON.stringify({ passage: passage.text, songs: songs }));
-        pyProcess.stdin.end();
+//         pyProcess.stdin.write(JSON.stringify({ passage: passage.text, songs: songs }));
+//         pyProcess.stdin.end();
 
-        pyProcess.stdout.on('data', (data) => pythonData += data.toString());
-        pyProcess.stderr.on('data', (data) => pythonError += data.toString());
+//         pyProcess.stdout.on('data', (data) => pythonData += data.toString());
+//         pyProcess.stderr.on('data', (data) => pythonError += data.toString());
 
-        pyProcess.on('close', (code) => {
-            if (code !== 0) {
-                return res.status(500).json({ error: "NLP Worker failed", details: pythonError });
-            }
-            try {
-                console.log("Sending response packet...\n");
-                const results = JSON.parse(pythonData);
+//         pyProcess.on('close', (code) => {
+//             if (code !== 0) {
+//                 return res.status(500).json({ error: "NLP Worker failed", details: pythonError });
+//             }
+//             try {
+//                 console.log("Sending response packet...\n");
+//                 const results = JSON.parse(pythonData);
 
-                res.json({
-                    search_query: {
-                        book: passage.resolved.book,
-                        startChapter: passage.resolved.startChapter,
-                        startVerse: passage.resolved.startVerse,
-                        endChapter: passage.resolved.endChapter,
-                        endVerse: passage.resolved.endVerse,
-                        passageSnippet: passage.text.substring(0, 100) + (passage.text.length > 100 ? "..." : "")
-                    },
-                    total_matches: results.length,
-                    matches: results
-                });
-            } catch (e) {
-                res.status(500).json({ error: "Failed to parse NLP results" });
-            }
-        });
+//                 res.json({
+//                     search_query: {
+//                         book: passage.resolved.book,
+//                         startChapter: passage.resolved.startChapter,
+//                         startVerse: passage.resolved.startVerse,
+//                         endChapter: passage.resolved.endChapter,
+//                         endVerse: passage.resolved.endVerse,
+//                         passageSnippet: passage.text.substring(0, 100) + (passage.text.length > 100 ? "..." : "")
+//                     },
+//                     total_matches: results.length,
+//                     matches: results
+//                 });
+//             } catch (e) {
+//                 res.status(500).json({ error: "Failed to parse NLP results" });
+//             }
+//         });
 
-    } catch (error) {
-        const msg = error.message;
-        let statusCode = (msg.includes("does not exist") || msg.includes("out of bounds")) ? 404 : 400;
-        res.status(statusCode).json({ error: msg });
-    }
-});
+//     } catch (error) {
+//         const msg = error.message;
+//         let statusCode = (msg.includes("does not exist") || msg.includes("out of bounds")) ? 404 : 400;
+//         res.status(statusCode).json({ error: msg });
+//     }
+// });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`\nSelahSearch API listening on port ${ PORT }...\n`));
