@@ -59,11 +59,12 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // mongodb stuff: will not be used for now but exists to allow for database functionality in the future
-const username = encodeURIComponent(process.env.MONGODB_USERNAME) // required to % encode this
-const password = encodeURIComponent(process.env.MONGODB_PASSWORD) // required to % encode this
-const cluster = 'devcluster'
-const dbName = 'SelahSearch'
-const uri = `mongodb+srv://${ username }:${ password }@${ cluster }.sypen0x.mongodb.net/${ dbName }?retryWrites=true&w=majority&appName=${ cluster }`
+const username = encodeURIComponent(process.env.MONGODB_USERNAME); // required to % encode this
+const password = encodeURIComponent(process.env.MONGODB_PASSWORD); // required to % encode this
+const cluster = 'devcluster';
+const dbName = 'SelahSearch';
+const uri = `mongodb+srv://${ username }:${ password }@${ cluster }.sypen0x.mongodb.net/${ dbName }?retryWrites=true&w=majority&appName=${ cluster }`;
+const NLP_WORKER_TIMEOUT = 300000;
 
 const client = new MongoClient(uri, {
     serverApi: {
@@ -95,29 +96,157 @@ async function connectToMongo() {
 
 app.use(express.json());
 
+async function forceHuggingFaceRestart() {
+    // const repoId = process.env.HF_REPO_ID;
+    const token = process.env.HF_TOKEN;
+    const HF_SPACE_URL = process.env.HF_SPACE_URL;
+
+    // if (!repoId) {
+    //     console.warn("HF_REPO_ID not set. Skipping hard restart check.");
+    //     return;
+    // }
+
+    // console.log(`[HF Monitor] Triggering hard restart request for ${ repoId }...`);
+    console.log(`[HF Monitor] Triggering hard restart request for NLP worker...`);
+    try {
+        const response = await fetch(`${ HF_SPACE_URL }/restart`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${ token }`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.ok) {
+            console.log("[HF Monitor] Space hard restart successfully triggered!");
+        } else {
+            const errData = await response.json().catch(() => ({}));
+            console.error("[HF Monitor] HF API rejected restart request:", errData);
+        }
+    } catch (e) {
+        console.error("[HF Monitor] Network error requesting hard restart:", e.message);
+    }
+}
+
+function mergePassageRequests(passages) {
+    // convert chapter/verse to a comparable absolute number (e.g., Ch 2, Vs 5 -> 2005)
+    const getScore = (c, v, isEnd) => {
+        let chap = parseInt(c) || (isEnd ? 999 : 1);
+        let vers = (v === 'start' || !v) ? (isEnd ? 999 : 1) : (v === 'end' ? 999 : parseInt(v));
+        return chap * 1000 + vers;
+    };
+
+    let grouped = {};
+
+    // group by book and calculate scores
+    for (const p of passages) {
+        if (!p.book) throw new Error("Book parameter is required in all passage objects.");
+
+        const bookName = p.book.toLowerCase().trim();
+        if (!grouped[bookName]) grouped[bookName] = [];
+
+        const startScore = getScore(p.startChapter, p.startVerse, false);
+        // If endChapter isn't provided, assume it ends in the same chapter it started
+        const endScore = getScore(p.endChapter || p.startChapter, p.endVerse, true);
+
+        grouped[bookName].push({ ...p, startScore, endScore });
+    }
+
+    // sort and merge overlaps
+    const mergedPassages = [];
+    for (const book in grouped) {
+        let reqs = grouped[book];
+        reqs.sort((a, b) => a.startScore - b.startScore);
+
+        let current = reqs[0];
+        for (let i = 1; i < reqs.length; i++) {
+            let next = reqs[i];
+
+            // If the next passage starts before or right where the current one ends (Overlap!)
+            if (next.startScore <= current.endScore) {
+                // Extend the end bound if the next passage goes further
+                if (next.endScore > current.endScore) {
+                    current.endScore = next.endScore;
+                    current.endChapter = next.endChapter || next.startChapter;
+                    current.endVerse = next.endVerse;
+                }
+            } else {
+                mergedPassages.push(current);
+                current = next;
+            }
+        }
+        mergedPassages.push(current);
+    }
+    return mergedPassages;
+}
+
+
+
+/**
+ * Healthcheck endpoint for status
+ */
 app.get('/healthcheck', (_, res) => {
     return res.status(200).json({ "status": "alive" })
 });
 
-// Route: GET /songs/matches?book=John&startChapter=3&startVerse=16...
-app.get('/songs/matches', async (req, res) => {
+/**
+ * Get songs matching list of bible passages provided as input
+ */
+app.post('/songs/matches', async (req, res) => {
     console.log("Received request for /songs/matches...");
     try {
         // Extract raw query params
-        const { book, startChapter, startVerse, endChapter, endVerse } = req.query;
+        console.log("Parsing query passages...");
+        const requestedPassages = req.body.passages;
 
-        if (!book) {
-            return res.status(400).json({ error: "Book parameter is required." });
+        if (!requestedPassages || !Array.isArray(requestedPassages) || requestedPassages.length === 0) {
+            return res.status(400).json({ error: "A 'passages' array is required in the request body." });
         }
 
-        // Pass raw values to extraction logic
-        const passage = extractPassage(
-            book,
-            startChapter, // String: e.g. "1" or undefined
-            startVerse,   // String: e.g. "1", "start", or undefined
-            endChapter,   // String: e.g. "1" or undefined
-            endVerse      // String: e.g. "2", "end" or undefined
-        );
+        // parse passages by handling duplicates and overlaps
+        const mergedRequests = mergePassageRequests(requestedPassages);
+
+        // extract passages and combine all text contents together
+        let combinedText = "";
+        let firstResolved = null;
+        const resolvedPassages = [];
+        for (const p of mergedRequests) {
+            // Note: If extractPassage() throws, execution jumps straight to the main catch block
+            const extracted = extractPassage(
+                p.book,
+                p.startChapter,
+                p.startVerse,
+                p.endChapter,
+                p.endVerse
+            );
+
+            combinedText += extracted.text + "\n\n";
+
+            // Save the first resolved metadata block for the JSON response structure
+            if (!firstResolved) {
+                firstResolved = extracted.resolved;
+            }
+
+            resolvedPassages.push({
+                book: extracted.resolved.book,
+                startChapter: extracted.resolved.startChapter,
+                startVerse: extracted.resolved.startVerse,
+                endChapter: extracted.resolved.endChapter,
+                endVerse: extracted.resolved.endVerse,
+                // passageSnippet returns first 100 characters, then all characters before next space before ...
+                passageSnippet: (() => {
+                    const txt = extracted.text;
+                    if (txt.length <= 100) return txt;
+                    const nextSpace = txt.indexOf(' ', 100);
+                    return nextSpace === -1 ? txt : txt.substring(0, nextSpace) + "...";
+                })()
+            });
+        }
+
+        const passage = {
+            text: combinedText.trim(),
+            resolved: firstResolved
+        };
 
         console.log("Extracting lyrics of all songs...");
         const songs = getAllLyrics().map(s => ({ name: s.songName, lyrics: s.lyrics }));
@@ -127,13 +256,124 @@ app.get('/songs/matches', async (req, res) => {
         const HF_SPACE_URL = process.env.HF_SPACE_URL;
 
         console.log("Connecting to the NLP worker...");
+        let retries = 2;
+        let delay = 5000;
+        while (retries > 0) {
+            try {
+                // connect to client
+                const client = await Client.connect(HF_SPACE_URL, { token: HF_TOKEN });
+
+                // connection successful
+                console.log("Connection successful. Calling the model...");
+                const response = await client.predict(`/predict`, {
+                    passage_text: passage.text,
+                    songs_json: JSON.stringify(songs)
+                }, {
+                    headers: {
+                        'Authorization': `Bearer ${ HF_TOKEN }`
+                    },
+                    timeout: NLP_WORKER_TIMEOUT
+                });
+
+                // Gradio returns results inside an 'data' array
+                const results = response.data[0];
+                if (results && results.error) {
+                    console.error("NLP Agent Logic Error:", results.error);
+                    return res.status(422).json({
+                        error: "The NLP agent processed the request but encountered a logic error.",
+                        details: results.error
+                    });
+                }
+
+                console.log("Returning response packet as json...\n");
+                res.json({
+                    passages: resolvedPassages,
+                    total_matches: results.length,
+                    matches: results
+                });
+
+                break; // Connection succeeded! Drop out of loop.
+            } catch (connectError) {
+                retries--;
+                console.warn(`[Connection Attempt] Space is waking up or unavailable. Retries left: ${ retries }. Message: ${ connectError.message }`);
+
+                // If connection failed, attempt to fire a hard restart request 
+                if (retries === 1) {
+                    await forceHuggingFaceRestart();
+                } else if (retries === 0) {
+                    throw connectError; // Out of retries, send to main catch block
+                }
+
+                // Wait before trying to connect again
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+
+
+    } catch (error) {
+        console.error("Gateway Error:", error.response?.data || error.message);
+
+        // Handle "Cold Start" on Hugging Face (if space is sleeping)
+        if (error.response?.status === 503 || error.code === 'ECONNABORTED') {
+            return res.status(503).json({
+                error: "NLP Agent is currently waking up or overwhelmed. Please retry in a moment."
+            });
+        }
+
+        // Handle extractPassage() passage does not exist or other syntax errors (e.g. start > end)
+        const msg = error.message;
+        let statusCode = (msg.includes("does not exist") || msg.includes("out of bounds") || msg.includes("required")) ? 404 : 400;
+        res.status(statusCode).json({ error: msg });
+    }
+});
+
+/**
+ * Get themes matching the song whose title is entered as input
+ */
+
+/**
+ * Get themes matching the bible passage whose reference is provided as input
+ */
+
+/**
+ * Get entire bible passage contents matching the reference provided as input
+ */
+
+/**
+ * Get all songs that match the song name provided as input
+ */
+
+/**
+ * Get songs relating to the text provided as input
+ */
+app.get('/text/matches', async (req, res) => {
+    console.log("Received request for /songs/matches...");
+    try {
+        // Extract raw query params
+        const { text } = req.query;
+
+        if (!text) {
+            return res.status(400).json({ error: "No text parameter supplied." });
+        }
+
+        console.log("Extracting lyrics of all songs...");
+        const songs = getAllLyrics().map(s => ({ name: s.songName, lyrics: s.lyrics }));
+
+        // Call to SelahSearch NLP Agent in Hugging Face Space
+        const HF_TOKEN = process.env.HF_TOKEN;
+        const HF_SPACE_URL = process.env.HF_SPACE_URL;
+
+        console.log(text);
+
+        console.log("Connecting to the NLP worker...");
         const client = await Client.connect(HF_SPACE_URL, {
             token: HF_TOKEN // Required for private Spaces
         });
 
         console.log("Connection successful. Calling the model...");
         const response = await client.predict(`/predict`, {
-            passage_text: passage.text,
+            passage_text: text,
             songs_json: JSON.stringify(songs)
         }, {
             headers: {
@@ -154,14 +394,7 @@ app.get('/songs/matches', async (req, res) => {
 
         console.log("Returning response packet as json...\n");
         res.json({
-            search_query: {
-                book: passage.resolved.book,
-                startChapter: passage.resolved.startChapter,
-                startVerse: passage.resolved.startVerse,
-                endChapter: passage.resolved.endChapter,
-                endVerse: passage.resolved.endVerse,
-                passageSnippet: passage.text.substring(0, 100) + (passage.text.length > 100 ? "..." : "")
-            },
+            search_query: text,
             total_matches: results.length,
             matches: results
         });
