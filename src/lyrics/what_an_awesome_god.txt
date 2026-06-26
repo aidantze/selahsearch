@@ -1,3 +1,7 @@
+name: What an Awesome God
+artist: Phil Wickham, Rich Mullins
+year: 2025
+---
 God is great, give Him all the praise
 Hallelujah, Name above all names
 Fire in His eyes, healing in His veins

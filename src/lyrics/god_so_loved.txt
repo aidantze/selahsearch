@@ -1,3 +1,7 @@
+name: God So Loved
+artist: We The Kingdom
+year: 2019
+---
 Come all you weary
 Come all you thirsty
 Come to the well

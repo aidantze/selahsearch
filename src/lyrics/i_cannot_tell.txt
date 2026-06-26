@@ -1,3 +1,7 @@
+name: I Cannot Tell
+artist: William Young Fullerton, Jane Ross
+year: 1920
+---
 I cannot tell why he, whom angels worship,
 should set his love upon the sons of men,
 or why, as Shepherd, he should seek the wanderers,

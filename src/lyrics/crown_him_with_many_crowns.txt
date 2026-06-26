@@ -1,3 +1,7 @@
+name: Crown Him with Many Crowns
+artist: Sir George Job Elvey, Matthew Bridges
+year: 1868
+---
 Crown him with many crowns,
 the Lamb upon his throne.
 Hark! how the heavenly anthem drowns

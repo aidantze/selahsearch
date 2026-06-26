@@ -1,3 +1,7 @@
+name: Blessed Be the Name
+artist: Matt Redman, Beth Redman
+year: 2001
+---
 Blessed Be Your Name
 In the land that is plentiful
 Where Your streams of abundance flow

@@ -1,3 +1,7 @@
+name: God is For Us
+artist: CityAlight
+year: 2018
+---
 We won't fear the battle, we won't fear the night
 We will walk the valley with You by our side
 You will go before us, You will lead the way

@@ -1,3 +1,7 @@
+name: Holy Holy Holy
+artist: Reginald Heber, John Bacchus Dykes
+year: 1861
+---
 Holy, holy, holy! Lord God Almighty!
 Early in the morning our song shall rise to thee.
 Holy, holy, holy! merciful and mighty!

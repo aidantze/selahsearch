@@ -1,3 +1,7 @@
+name: Hear Our Prayer
+artist: Emu Music
+year: 2014
+---
 Hear our prayer, God above
 As we come to you and seek your patient love
 Hear our hearts, hear our minds

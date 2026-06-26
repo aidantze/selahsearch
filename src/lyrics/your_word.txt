@@ -1,3 +1,7 @@
+name: Your Word
+artist: Emu Music
+year: 2020
+---
 Your word is good, it’s ever faithful
 Worth more than gold, the heart’s delight
 Your word gives life to all who hear and obey

@@ -1,3 +1,7 @@
+name: I Stand Amazed In The Presence
+artist: Charles Hutchinson Gabriel
+year: 1905
+---
 I stand amazed in the presence
 Of Jesus the Nazarene,
 And wonder how He could love me,

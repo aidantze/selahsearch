@@ -1,3 +1,7 @@
+name: He Will Hold Me Fast
+artist: Robert Harkness, Ada Habershon, Matt Merker
+year: 2013
+---
 When I fear my faith will fail
 Christ will hold me fast
 When the tempter would prevail

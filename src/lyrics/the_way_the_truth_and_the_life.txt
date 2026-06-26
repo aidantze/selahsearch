@@ -1,3 +1,7 @@
+name: The Way The Truth The Life
+artist: CityAlight
+year: 2024
+---
 I will fix my eyes on Christ
 The one and only way
 I will follow in His steps

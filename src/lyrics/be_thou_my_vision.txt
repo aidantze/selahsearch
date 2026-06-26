@@ -1,3 +1,7 @@
+name: Be Thou My Vision
+artist: David Evans
+year: 1927
+---
 Be thou my vision, O Lord of my heart;
 Naught be all else to me save that thou art.
 Thou my best thought by day and by night;

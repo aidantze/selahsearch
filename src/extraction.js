@@ -4,6 +4,8 @@ const path = require('path');
 const BIBLE_PATH = 'src/bible.txt';
 const LYRICS_DIR = 'src/lyrics/';
 
+const THEME_SCORE_THRESHOLD = 0.2
+
 function formatBookName(bookInput) {
     let book = bookInput.trim().toLowerCase();
     const aliases = { "song of songs": "song of solomon", "psalm": "psalms" };
@@ -131,19 +133,142 @@ function extractPassage(bookInput, startCh, startVs, endCh, endVs) {
     };
 }
 
-// TODO: refactor this to include the artist name at top of each file and filter that out...
-function getAllLyrics() {
-    // Current: Reads from /lyrics folder. Future: fetch from MongoDB.
-    const files = fs.readdirSync(LYRICS_DIR).filter(f => f.endsWith('.txt')).sort();
-    return files.map(file => {
-        const fullPath = path.join(LYRICS_DIR, file);
-        return {
-            filename: file,
-            songName: file.replace('.txt', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-            artist: "", // TODO: fill this in
-            lyrics: fs.readFileSync(fullPath, 'utf8').trim()
-        };
-    });
+function parseSongFile(filename) {
+    const fullPath = path.join(LYRICS_DIR, filename);
+    const fileContent = fs.readFileSync(fullPath, 'utf8').trim();
+
+    // Split file by the frontmatter delimiter
+    const parts = fileContent.split('\n---\n');
+
+    let metadataPart = '';
+    let lyricsPart = '';
+
+    if (parts.length >= 2) {
+        metadataPart = parts[0];
+        // Join the rest back in case the lyrics themselves contain '---'
+        lyricsPart = parts.slice(1).join('\n---\n').trim();
+    } else {
+        // Fallback if a file lacks the '---' line break cleanly
+        lyricsPart = fileContent;
+    }
+
+    // Parse metadata lines (e.g., "name: A Thousand Hallelujahs")
+    let songName = filename.replace('.txt', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    let artist = "";
+    let year = "";
+
+    const lines = metadataPart.split('\n');
+    for (const line of lines) {
+        const cleanLine = line.trim();
+        if (cleanLine.startsWith('name:')) {
+            songName = cleanLine.replace('name:', '').trim();
+        } else if (cleanLine.startsWith('artist:')) {
+            artist = cleanLine.replace('artist:', '').trim();
+        } else if (cleanLine.startsWith('year:')) {
+            year = cleanLine.replace('year:', '').trim();
+        }
+    }
+
+    return {
+        filename,
+        songName,
+        artist,
+        year,
+        lyrics: lyricsPart
+    };
 }
 
-module.exports = { extractPassage, getAllLyrics, formatBookName };
+function toTitleCase(str) {
+    return str.toLowerCase().replace(/\b\w/g, match => match.toUpperCase());
+}
+
+function getLyrics(metadataArgs) {
+    if (!metadataArgs || !(metadataArgs.name || metadataArgs.artist || metadataArgs.year)) {
+        return null;
+    }
+
+    const files = fs.readdirSync(LYRICS_DIR).filter(f => f.endsWith('.txt'));
+
+    const lookForName = metadataArgs.name ? true : false;
+    const lookForArtist = metadataArgs.artist ? true : false;
+    const lookForYear = metadataArgs.year ? true : false;
+
+    const targetName = metadataArgs.name ? metadataArgs.name.trim().toLowerCase() : null;
+    const targetArtist = metadataArgs.artist ? metadataArgs.artist.trim().toLowerCase() : null;
+    const targetYear = metadataArgs.year ? metadataArgs.year.toString().trim() : null;
+
+    let matches = [];
+    for (const file of files) {
+        const songData = parseSongFile(file);
+
+        const currentName = songData.songName.toLowerCase();
+        const currentArtist = songData.artist.toLowerCase();
+        const currentYear = songData.year.toString().toLowerCase();
+
+        // Strict validation using title & artist combo to support identical titles
+        const isNameMatch = lookForName ? (currentName === targetName || currentName.includes(targetName) || targetName.includes(currentName)) : true;
+        const isArtistMatch = lookForArtist ? currentArtist === targetArtist || currentArtist.includes(targetArtist) || targetArtist.includes(currentArtist) : true;
+        const isYearMatch = lookForYear ? (currentYear === targetYear) : true;
+
+        if (isNameMatch && isArtistMatch && isYearMatch) {
+            matches.push({
+                name: toTitleCase(currentName), // TODO: return name and artist in capital case
+                artist: toTitleCase(currentArtist),
+                year: currentYear,
+                lyrics: songData.lyrics
+            });
+        }
+    }
+
+    if (matches.length === 0) return null;
+    return matches; // Return null explicitly if no unique asset is located
+}
+
+function getAllLyrics() {
+    const files = fs.readdirSync(LYRICS_DIR).filter(f => f.endsWith('.txt')).sort();
+
+    const res = files.map(file => {
+        const songData = parseSongFile(file);
+        return {
+            name: toTitleCase(songData.songName),
+            artist: toTitleCase(songData.artist),
+            year: songData.year,
+            lyrics: songData.lyrics
+        }
+    });
+    return res;
+}
+
+// function getLyrics(name) {
+//     // Current: Reads from /lyrics folder. Future: fetch from MongoDB.
+//     const files = fs.readdirSync(LYRICS_DIR).filter(f => f.endsWith('.txt')).sort();
+//     const songname = file.replace('.txt', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+//     const matchname = name.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+//     if (songname == matchname || songname.contains(matchname) || matchname.contains(songname)) {
+//         return {
+//             filename: file,
+//             songName: file.replace('.txt', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+//             artist: "", // TODO: fill this in
+//             year: "", // TODO: fill this in
+//             lyrics: fs.readFileSync(fullPath, 'utf8').trim()
+//         }
+//     }
+// }
+
+// // TODO: refactor this to include the artist name at top of each file and filter that out...
+// function getAllLyrics() {
+//     // Current: Reads from /lyrics folder. Future: fetch from MongoDB.
+//     const files = fs.readdirSync(LYRICS_DIR).filter(f => f.endsWith('.txt')).sort();
+//     return files.map(file => {
+//         const fullPath = path.join(LYRICS_DIR, file);
+//         return {
+//             filename: file,
+//             songName: file.replace('.txt', '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+//             artist: "", // TODO: fill this in
+//             year: "", // TODO: fill this in
+//             lyrics: fs.readFileSync(fullPath, 'utf8').trim()
+//         };
+//     });
+// }
+
+module.exports = { extractPassage, getAllLyrics, getLyrics, formatBookName, THEME_SCORE_THRESHOLD };

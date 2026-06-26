@@ -1,11 +1,13 @@
-Jesus said
-That if I thirst
+name: Jesus Strong and Kind
+artist: CityAlight, Colin Buchanan
+year: 2019
+---
+Jesus said that if I thirst
 I should come to him
 No one else can satisfy
 I should come to him
 
-Jesus said
-If I am weak
+Jesus said if I am weak
 I should come to him
 No one else can be my strength
 I should come to him
@@ -15,8 +17,7 @@ He will keep us day and night
 We can always run to Jesus
 Jesus, strong and kind
 
-Jesus said
-That if I fear
+Jesus said that if I fear
 I should come to him
 No one else can be my shield
 I should come to him

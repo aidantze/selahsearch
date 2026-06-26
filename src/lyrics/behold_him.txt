@@ -1,3 +1,7 @@
+name: Behold Him
+artist: Paul Baloche
+year: 2019
+---
 He who was before there was light
 Walked across the pages of time
 He who made every living thing

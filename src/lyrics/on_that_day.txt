@@ -1,3 +1,7 @@
+name: On That Day
+artist: CityAlight
+year: 2024
+---
 I believe in Christ, risen from the dead
 He now reigns victorious, His kingdom knows no end
 Through His resurrection, death has lost its hold
