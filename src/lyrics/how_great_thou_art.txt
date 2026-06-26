@@ -1,3 +1,7 @@
+name: How Great Thou Art
+artist: Stuart K. Hine, Carl Boberg
+year: 1949
+---
 O Lord my God
 When I in awesome wonder
 Consider all the works

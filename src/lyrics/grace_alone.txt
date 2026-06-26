@@ -1,3 +1,7 @@
+name: Grace Alone
+artist: Dustin Kensrue
+year: 2012
+---
 I was an orphan lost at the Fall
 Running away when I'd hear Your call
 But Father, You worked Your will

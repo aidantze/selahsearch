@@ -1,3 +1,7 @@
+name: A Thousand Hallelujahs
+artist: Brooke Ligertwood, Scott Ligertwood, Phil Wickham
+year: 2022
+---
 Who else would rocks cry out to worship?
 Whose glory taught the stars to shine?
 Perhaps creation longs to have the words to sing

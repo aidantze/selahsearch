@@ -1,3 +1,7 @@
+name: When I Survey the Wondrous Cross
+artist: Isaac Watts, Lowell Mason
+year: 1824
+---
 When I survey the wondrous cross
 on which the Prince of glory died,
 my richest gain I count but loss,

@@ -1,3 +1,7 @@
+name: It Is Well With My Soul
+artist: Horatio Spafford, Philip Bliss
+year: 1876
+---
 When peace like a river attendeth my way,
 When sorrows like sea billows roll;
 Whatever my lot Thou hast taught me to say,

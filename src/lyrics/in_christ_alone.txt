@@ -1,3 +1,7 @@
+name: In Christ Alone
+artist: Keith Getty, Stuart Townend
+year: 2001
+---
 In Christ alone, my hope is found
 He is my light, my strength, my song
 This Cornerstone, this solid ground

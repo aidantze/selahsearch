@@ -1,3 +1,7 @@
+name: Praise to the Lord the Almighty
+artist: Joachim Neander, Catherine Winkworth, Erhard Bodenschatz
+year: 1863
+---
 Praise to the Lord, the Almighty, the King of creation! 
 O my soul, praise him, for he is your health and salvation! 
 All you who hear, now to his temple draw near, praise him in glad adoration.

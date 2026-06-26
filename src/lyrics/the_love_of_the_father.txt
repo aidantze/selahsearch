@@ -1,3 +1,7 @@
+name: The Love of the Father
+artist: CityAlight
+year: 2014
+---
 Lift up your voices and lift up your praise
 Join with the heavens declaring the wonders
 Of His faithfulness forever

@@ -1,3 +1,7 @@
+name: Rejoice
+artist: Dustin Kursrue, Stuart Townend
+year: 2013
+---
 Come and stand before your Maker
 Full of wonder, full of fear
 Come behold His power and glory

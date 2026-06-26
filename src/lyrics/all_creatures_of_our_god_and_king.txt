@@ -1,3 +1,7 @@
+name: All Creatures of our God and King
+artist: St. Francis of Assisi, Ralph Vaughan Williams
+year: 1906
+---
 All creatures of our God and King
 Lift up your voice and with us sing
 O praise Him! Alleluia!

@@ -1,3 +1,7 @@
+name: Lamb of God
+artist: Vertical Worship
+year: 2014
+---
 You came from heavens throne
 Acquainted with our sorrow
 To trade the debt we owe

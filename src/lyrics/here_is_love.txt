@@ -1,3 +1,7 @@
+name: Here Is Love Vast As The Ocean
+artist: Robert Lowry, William Rees, William Williams
+year: 1847
+---
 Here is love, vast as the ocean,
 Loving-kindness as the flood;
 When the Prince of Life, my ransom,

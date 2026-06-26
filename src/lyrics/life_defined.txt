@@ -1,3 +1,7 @@
+name: Life Defined
+artist: Shane and Shane
+year: 2018
+---
 Would you be my life oh I surrender
 One day is better
 With you than all the world

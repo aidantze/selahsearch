@@ -1,3 +1,7 @@
+name: Man of Sorrows
+artist: Hillsong Worship
+year: 2013
+---
 Man of sorrows Lamb of God
 By His own betrayed
 The sin of man and wrath of God
